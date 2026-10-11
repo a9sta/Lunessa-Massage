@@ -1,0 +1,22 @@
+{
+  "brand": { "ko": "루네사", "en": "Lunessa", "slogan": "달빛처럼 조용히 드는 방문 관리" },
+  "siteUrl": "https://lunessa-massage.netlify.app",
+  "locale": "ko_KR",
+  "tel": "050-8202-4752",
+  "telRaw": "05082024752",
+  "hours": "24시간 연중무휴",
+  "pay": "후불제",
+  "arrive": "접수 뒤 20~40분",
+  "naverVerification": "",
+  "rssTitle": "루네사 방문 관리 소식",
+  "business": {
+    "name": "루네사",
+    "owner": "",
+    "regNo": "",
+    "address": "",
+    "privacyOfficer": "",
+    "email": "",
+    "note": "사업자 정보는 확정되는 대로 이 항목만 채우면 푸터·스키마에 함께 반영된다. 비워 두면 해당 줄은 출력하지 않는다."
+  },
+  "coverage": { "sido": ["서울", "경기", "인천", "부산"] }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "lunessa-massage",
+  "version": "1.0.0",
+  "private": true,
+  "description": "루네사 출장마사지 — 서울·경기·인천·부산 행정동 안내 정적 사이트",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "node src/build.mjs",
+    "regions": "node scripts/build-regions.mjs",
+    "check": "node scripts/check.mjs",
+    "serve": "node scripts/serve.mjs"
+  }
+}

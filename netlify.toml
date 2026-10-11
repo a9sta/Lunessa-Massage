@@ -1,0 +1,49 @@
+# Netlify 배포 설정 — 빌드는 의존성 없이 Node 표준 라이브러리만 쓴다.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# 정식 도메인을 붙이면 아래 SITE_URL 을 그 주소로 바꾼다.
+# 비워 두면 Netlify 가 넣어 주는 URL(배포 주소)을 그대로 쓴다.
+# SITE_URL = "https://www.example.com"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=(), interest-cohort=()"
+    Content-Security-Policy = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/sitemap*.xml"
+  [headers.values]
+    Content-Type = "application/xml; charset=utf-8"
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/rss.xml"
+  [headers.values]
+    Content-Type = "application/rss+xml; charset=utf-8"
+    Cache-Control = "public, max-age=3600"
+
+# 끝에 슬래시 없는 주소로 들어와도 한 벌로 모은다(canonical 과 일치시킨다).
+[[redirects]]
+  from = "/index.html"
+  to = "/"
+  status = 301
+  force = true
