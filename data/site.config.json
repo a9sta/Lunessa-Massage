@@ -1,5 +1,9 @@
 {
-  "brand": { "ko": "루네사", "en": "Lunessa", "slogan": "달빛처럼 조용히 드는 방문 관리" },
+  "brand": {
+    "ko": "루네사",
+    "en": "Lunessa",
+    "slogan": "달빛처럼 조용히 드는 방문 관리"
+  },
   "siteUrl": "https://lunessa-massage.netlify.app",
   "locale": "ko_KR",
   "tel": "050-8202-4752",
@@ -18,5 +22,13 @@
     "email": "",
     "note": "사업자 정보는 확정되는 대로 이 항목만 채우면 푸터·스키마에 함께 반영된다. 비워 두면 해당 줄은 출력하지 않는다."
   },
-  "coverage": { "sido": ["서울", "경기", "인천", "부산"] }
+  "coverage": {
+    "sido": [
+      "서울",
+      "경기",
+      "인천",
+      "부산"
+    ]
+  },
+  "indexNowKey": "c88cf168d7b61d647304856b4874daf7"
 }

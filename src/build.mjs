@@ -162,12 +162,41 @@ ${regions.map((r) => `- [${r.name} 지역](${siteUrl}/${r.slug}/): 시군구 →
 ${siteUrl}/sitemap.xml
 `);
 
+/* ── _headers · _redirects ──────────────────────────────────
+   netlify.toml 은 깃 연동 빌드에서만 읽힌다. zip 을 직접 올리는 배포에서도
+   같은 규칙이 걸리도록 publish 폴더 안에 파일로도 떨어뜨린다. */
+fs.writeFileSync(path.join(DIST, '_headers'), `/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), interest-cohort=()
+  Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/sitemap.xml
+  Content-Type: application/xml; charset=utf-8
+/sitemap-*.xml
+  Content-Type: application/xml; charset=utf-8
+/rss.xml
+  Content-Type: application/rss+xml; charset=utf-8
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+`);
+
+fs.writeFileSync(path.join(DIST, '_redirects'), `/index.html   /   301!
+`);
+
 fs.writeFileSync(path.join(DIST, 'site.webmanifest'), JSON.stringify({
   name: `${cfg.brand.ko} 출장마사지`, short_name: cfg.brand.ko,
   description: `${cfg.coverage.sido.join('·')} 출장마사지·홈타이 방문 관리`,
   start_url: '/', display: 'standalone', background_color: '#12172B', theme_color: '#12172B',
   lang: 'ko-KR', icons: [{ src: '/assets/favicon.svg', sizes: 'any', type: 'image/svg+xml' }],
 }, null, 2));
+
+/* IndexNow(네이버 웹페이지 수집 요청) 키 파일 — 루트에 그대로 떨어져야 통보가 받아들여진다. */
+if (cfg.indexNowKey) fs.writeFileSync(path.join(DIST, `${cfg.indexNowKey}.txt`), cfg.indexNowKey);
 
 writeAssets(DIST, cfg);
 
