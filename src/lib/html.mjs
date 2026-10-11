@@ -155,7 +155,7 @@ function footer(ctx, latestPosts = []) {
 
 function callbar(cfg) {
   return `<div class="cbar">
-  <a class="cbar-tel" href="tel:${cfg.telRaw}"><span class="cbar-k">전화 접수</span><span class="cbar-n">${esc(cfg.tel)}</span></a>
+  <a class="cbar-tel" href="tel:${cfg.telRaw}"><span class="cbar-k">예약 문의</span><span class="cbar-n">${esc(cfg.tel)}</span></a>
   <span class="cbar-s">${esc(cfg.hours)}</span>
 </div>`;
 }
