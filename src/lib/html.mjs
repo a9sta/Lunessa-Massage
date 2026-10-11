@@ -23,6 +23,7 @@ export function layout(ctx, opts) {
 <html lang="ko">
 <head>
 <meta charset="utf-8">
+${cfg.naverVerification ? `<meta name="naver-site-verification" content="${esc(cfg.naverVerification)}"/>` : ''}
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(desc)}">
@@ -30,7 +31,6 @@ export function layout(ctx, opts) {
 ${noindex ? '<meta name="robots" content="noindex,follow">' : '<meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1">'}
 <meta name="format-detection" content="telephone=yes">
 <meta name="author" content="${esc(cfg.brand.ko)}">
-${cfg.naverVerification ? `<meta name="naver-site-verification" content="${esc(cfg.naverVerification)}">` : ''}
 ${geo ? `<meta name="geo.region" content="${esc(geo.iso)}">
 <meta name="geo.placename" content="${esc(geo.placename)}">
 <meta name="geo.position" content="${geo.lat};${geo.lng}">
@@ -45,6 +45,7 @@ ${geo ? `<meta name="geo.region" content="${esc(geo.iso)}">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="${esc(title)}">
 <meta name="twitter:description" content="${esc(desc)}">
+<link rel="sitemap" type="application/xml" href="/sitemap.xml">
 <link rel="alternate" type="application/rss+xml" title="${esc(cfg.rssTitle)}" href="${siteUrl}/rss.xml">
 <link rel="sitemap" type="application/xml" href="${siteUrl}/sitemap.xml">
 <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
@@ -143,7 +144,7 @@ function footer(ctx, latestPosts = []) {
         <li><a href="/sitemap.xml">사이트맵</a></li>
         <li><a href="/llms.txt">llms.txt</a></li>
       </ul>
-      <p class="ft-note">마지막 갱신 <time datetime="${updated}">${updated}</time></p>
+      <p class="ft-note">마지막 갱신 <time datetime="@@LM@@">@@LM@@</time></p>
     </nav>
   </div>
   <div class="ft-bar">

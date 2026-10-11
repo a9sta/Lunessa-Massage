@@ -3,6 +3,7 @@
  *   node src/build.mjs   →  dist/
  */
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { hash, shuffle, esc } from './lib/util.mjs';
@@ -74,6 +75,32 @@ pages.push(notFound(ctx));
 /* ── 쓰기 ────────────────────────────────────────────────── */
 fs.rmSync(DIST, { recursive: true, force: true });
 fs.mkdirSync(DIST, { recursive: true });
+/* ── 페이지별 '진짜 수정일' ───────────────────────────────────
+   빌드할 때마다 전 페이지 lastmod 를 오늘로 찍으면 "매일 1,551쪽이 바뀌었다"는
+   거짓 신호가 된다(네이버 스팸 정책에 걸리는 종류다). 날짜 자리를 @@LM@@ 토큰으로
+   비워 둔 채 본문 해시를 내고, **해시가 지난 빌드와 같으면 그때 날짜를 그대로 쓴다.**
+   그래서 실제로 글이 바뀐 쪽만 날짜가 올라간다. 기록은 data/lastmod.json. */
+const LM_FILE = path.join(ROOT, 'data', 'lastmod.json');
+let lmPrev = {};
+try { lmPrev = JSON.parse(fs.readFileSync(LM_FILE, 'utf8')); } catch { lmPrev = {}; }
+const lmNext = {};
+for (const pg of pages) {
+  const h = crypto.createHash('md5').update(pg.html).digest('hex').slice(0, 16);
+  const prev = lmPrev[pg.path];
+  let date;
+  if (prev && prev.h === h) date = prev.d;                       // 안 바뀐 쪽 — 날짜 유지
+  else if (!prev) {                                              // 첫 등장
+    const m = pg.path.match(/^\/magazine\/([^/]+)\/$/);
+    const post = m && POSTS.find((x) => x.slug === m[1]);
+    date = post ? post.date : updated;                           // 글은 발행일로 심는다
+  } else date = updated;                                         // 내용이 바뀌었다
+  lmNext[pg.path] = { h, d: date };
+  pg.lastmod = date;
+  pg.html = pg.html.split('@@LM@@').join(date);
+}
+fs.writeFileSync(LM_FILE, JSON.stringify(lmNext));
+const changedToday = pages.filter((p) => p.lastmod === updated).length;
+
 for (const pg of pages) {
   const out = pg.path.endsWith('.html') ? path.join(DIST, pg.path) : path.join(DIST, pg.path, 'index.html');
   fs.mkdirSync(path.dirname(out), { recursive: true });
@@ -82,14 +109,7 @@ for (const pg of pages) {
 
 /* ── 사이트맵 ────────────────────────────────────────────── */
 const indexable = pages.filter((p) => !p.path.endsWith('.html'));
-const dataDate = data.built;
-function lastmodFor(p) {
-  const m = p.path.match(/^\/magazine\/([^/]+)\/$/);
-  if (m) { const post = POSTS.find((x) => x.slug === m[1]); if (post) return post.date; }
-  if (p.path === '/magazine/') return POSTS.map((x) => x.date).sort().pop();
-  if (/^\/(seoul|gyeonggi|incheon|busan)\//.test(p.path)) return dataDate;
-  return updated;
-}
+const lastmodFor = (p) => p.lastmod;
 function urlset(list) {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -103,6 +123,19 @@ fs.writeFileSync(path.join(DIST, 'sitemap.xml'), `<?xml version="1.0" encoding="
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${Object.keys(shards).map((k) => `<sitemap><loc>${siteUrl}/sitemap-${k}.xml</loc><lastmod>${updated}</lastmod></sitemap>`).join('\n')}
 </sitemapindex>`);
+
+/* ── sitemap-latest.xml ───────────────────────────────────
+   최근 14일 안에 **실제로 바뀐** 쪽만 담는다. 두 가지로 쓰인다.
+     · 네이버/구글에 "여기부터 보라"고 좁혀 주는 쪽지(robots.txt 에 따로 건다)
+     · IndexNow 통보 스크립트가 /sitemap-latest.xml 을 **먼저** 읽는다 →
+       바뀐 주소가 회차 상한(500)을 먼저 가져가므로 가장 빨리 수집 요청이 나간다.
+   전체 사이트맵과 겹쳐도 무방하다(같은 주소가 두 사이트맵에 있어도 규격상 문제없다). */
+const DAY = 86400000;
+const latest = indexable
+  .filter((p) => Date.now() - Date.parse(`${p.lastmod}T00:00:00Z`) <= 14 * DAY)
+  .sort((a, b) => b.lastmod.localeCompare(a.lastmod) || a.path.length - b.path.length);
+const latestList = latest.length ? latest.slice(0, 2000) : indexable.filter((p) => p.path === '/');
+fs.writeFileSync(path.join(DIST, 'sitemap-latest.xml'), urlset(latestList));
 
 /* ── RSS ─────────────────────────────────────────────────── */
 const rssItems = POSTS.slice().sort((a, b) => b.date.localeCompare(a.date)).map((p) => `  <item>
@@ -119,21 +152,43 @@ fs.writeFileSync(path.join(DIST, 'rss.xml'), `<?xml version="1.0" encoding="UTF-
   <link>${siteUrl}/magazine/</link>
   <atom:link href="${siteUrl}/rss.xml" rel="self" type="application/rss+xml"/>
   <description>${esc(cfg.brand.ko)} 출장마사지·홈타이 방문 관리 안내 글</description>
-  <language>ko</language>
-  <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
+  <language>ko-KR</language>
+  <copyright>© ${new Date().getFullYear()} ${esc(cfg.brand.ko)}</copyright>
+  <category>생활·건강</category>
+  <generator>lunessa-ssg</generator>
+  <docs>https://www.rssboard.org/rss-specification</docs>
+  <ttl>60</ttl>
+  <pubDate>${new Date(`${POSTS.map((x) => x.date).sort().pop()}T09:00:00+09:00`).toUTCString()}</pubDate>
+  <!-- 글이 바뀐 시각. 빌드 시각을 쓰면 같은 내용에도 파일이 매번 달라진다 -->
+  <lastBuildDate>${new Date(`${POSTS.map((x) => x.date).sort().pop()}T09:00:00+09:00`).toUTCString()}</lastBuildDate>
 ${rssItems}
 </channel>
 </rss>`);
 
 /* ── robots · llms.txt · manifest ────────────────────────── */
-fs.writeFileSync(path.join(DIST, 'robots.txt'), `User-agent: *
+/* robots.txt
+   ★Yeti 그룹을 따로 두면 Yeti 는 `*` 그룹을 **통째로 무시한다** — 규칙을 같이 적어 둬야 한다.
+   ★Crawl-delay 는 적지 않는다(적는 순간 네이버가 그만큼 쉬엄쉬엄 긁는다).
+   ★사이트맵 색인만 걸지 않고 **자식 사이트맵까지 한 줄씩** 건다. 색인 파일을 덜 파고드는
+     수집기가 있어서, 줄을 늘려 두는 쪽이 늦게 발견될 위험을 없앤다. */
+const sitemapLines = [
+  `${siteUrl}/sitemap.xml`,
+  `${siteUrl}/sitemap-latest.xml`,
+  ...Object.keys(shards).map((k) => `${siteUrl}/sitemap-${k}.xml`),
+].map((u) => `Sitemap: ${u}`).join('\n');
+fs.writeFileSync(path.join(DIST, 'robots.txt'), `User-agent: Yeti
 Allow: /
 Disallow: /404.html
 
-User-agent: Yeti
+User-agent: Yeti-Mobile
 Allow: /
+Disallow: /404.html
 
-Sitemap: ${siteUrl}/sitemap.xml
+User-agent: *
+Allow: /
+Disallow: /404.html
+
+${sitemapLines}
 `);
 
 fs.writeFileSync(path.join(DIST, 'llms.txt'), `# ${cfg.brand.ko} (${cfg.brand.en})
@@ -177,11 +232,19 @@ fs.writeFileSync(path.join(DIST, '_headers'), `/*
 
 /sitemap.xml
   Content-Type: application/xml; charset=utf-8
+  Cache-Control: public, max-age=300, must-revalidate
 /sitemap-*.xml
   Content-Type: application/xml; charset=utf-8
+  Cache-Control: public, max-age=300, must-revalidate
 /rss.xml
   Content-Type: application/rss+xml; charset=utf-8
+  Cache-Control: public, max-age=300, must-revalidate
+/robots.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=300, must-revalidate
 /llms.txt
+  Content-Type: text/plain; charset=utf-8
+/*.txt
   Content-Type: text/plain; charset=utf-8
 `);
 

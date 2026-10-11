@@ -39,7 +39,7 @@ export function webpage({ url, siteUrl, title, desc, updated, breadcrumbId }) {
   return {
     '@type': 'WebPage', '@id': `${url}#page`, url, name: title, description: desc,
     inLanguage: 'ko-KR', isPartOf: { '@id': `${siteUrl}/#site` },
-    dateModified: updated, ...(breadcrumbId ? { breadcrumb: { '@id': breadcrumbId } } : {}),
+    dateModified: '@@LM@@', ...(breadcrumbId ? { breadcrumb: { '@id': breadcrumbId } } : {}),
   };
 }
 
